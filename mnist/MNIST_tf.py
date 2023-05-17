@@ -2,18 +2,19 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import gzip, sys, os, time
-import urllib, numpy
+import gzip
+import sys
+import os
+import time
+import urllib
+import numpy
 
 import tensorflow as tf
 
 # 文件路径
-log_path = r"\\logs"  # 日志文件路径
-dataset_path = (
-    r"D:\\QQ\\2433127926\\FileRecv\\文档\SIAT\\深度学习CS\\实验\\手写数字识别\\data\\MNIST\\raw\\"
-)
-# 数据集存放路径
-model_save_path = r"\save_model"  # 模型待存储路径
+log_path = r"./logs"  # 日志文件路径
+dataset_path = r"./data"  # 数据集存放路径
+model_save_path = r"./model"  # 模型待存储路径
 
 # Images source and details
 SOURCE_URL = "https://storage.googleapis.com/cvdf-datasets/mnist/"
@@ -51,7 +52,8 @@ def maybe_download(filename):
         tf.io.gfile.makedirs(WORK_DIRECTORY)
     filepath = os.path.join(WORK_DIRECTORY, filename)
     if not tf.io.gfile.exists(filepath):
-        filepath, _ = urllib.request.urlretrieve(SOURCE_URL + filename, filepath)
+        filepath, _ = urllib.request.urlretrieve(
+            SOURCE_URL + filename, filepath)
     with tf.io.gfile.GFile(filepath) as f:
         size = f.size()
 
@@ -66,7 +68,8 @@ def extract_data(filename, num_images):
     print("Extracting", filename)
     with gzip.open(filename) as bytestream:
         bytestream.read(16)  # 每个像素存储在文件中的大小为16bits
-        buf = bytestream.read(IMAGE_SIZE * IMAGE_SIZE * num_images * NUM_CHANNELS)
+        buf = bytestream.read(IMAGE_SIZE * IMAGE_SIZE *
+                              num_images * NUM_CHANNELS)
         data = numpy.frombuffer(buf, dtype=numpy.uint8).astype(numpy.float32)
         # 像素值[0, 255]被调整到[-0.5, 0.5]
         data = (data - (PIXEL_DEPTH / 2.0)) / PIXEL_DEPTH
@@ -89,7 +92,8 @@ def extract_labels(filename, num_images):
 def error_rate(predictions, labels):
     """Return the error rate based on dense predictions and sparse labels."""
     return 100.0 - (
-        100.0 * numpy.sum(numpy.argmax(predictions, 1) == labels) / predictions.shape[0]
+        100.0 * numpy.sum(numpy.argmax(predictions, 1) ==
+                          labels) / predictions.shape[0]
     )
 
 
@@ -110,9 +114,10 @@ def eval_in_batches(data, sess):
             )
         else:
             batch_predictions = sess.run(
-                eval_prediction, feed_dict={eval_data: data[-EVAL_BATCH_SIZE:, ...]}
+                eval_prediction, feed_dict={
+                    eval_data: data[-EVAL_BATCH_SIZE:, ...]}
             )
-            predictions[begin:, :] = batch_predictions[begin - size :, :]
+            predictions[begin:, :] = batch_predictions[begin - size:, :]
     return predictions
 
 
@@ -147,7 +152,8 @@ fc2_weights = tf.Variable(
         [512, NUM_LABELS], stddev=0.1, seed=SEED, dtype=data_type()
     )
 )
-fc2_biases = tf.Variable(tf.constant(0.1, shape=[NUM_LABELS], dtype=data_type()))
+fc2_biases = tf.Variable(tf.constant(
+    0.1, shape=[NUM_LABELS], dtype=data_type()))
 
 
 # NN
@@ -155,7 +161,8 @@ def model(data, train=False):
     """The Model definition."""
     # 2D 卷积，带有“SAME”填充（即输出要素图与输入的大小相同）。
     # 请注意，{strides}是一个4D 数组，其形状与数据布局匹配：[image index，y，x，depth]。
-    conv = tf.nn.conv2d(data, conv1_weights, strides=[1, 1, 1, 1], padding="SAME")
+    conv = tf.nn.conv2d(data, conv1_weights, strides=[
+                        1, 1, 1, 1], padding="SAME")
     #  偏置和ReLU 非线性激活。
     relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases))
     # Max pooling. The kernel size spec {ksize} also follows the layout of
@@ -163,7 +170,8 @@ def model(data, train=False):
     pool = tf.nn.max_pool(
         relu, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME"
     )
-    conv = tf.nn.conv2d(pool, conv2_weights, strides=[1, 1, 1, 1], padding="SAME")
+    conv = tf.nn.conv2d(pool, conv2_weights, strides=[
+                        1, 1, 1, 1], padding="SAME")
     relu = tf.nn.relu(tf.nn.bias_add(conv, conv2_biases))
     #  最大池化。
     #  内核大小规范{ksize}也遵循数据布局。  这里我们有一个2 的池化窗口和2 的步幅。
@@ -271,12 +279,13 @@ with tf.Session() as sess:
         # Compute the offset of the current minibatch in the data.
         # Note that we could use better randomization across epochs.
         offset = (step * BATCH_SIZE) % (train_size - BATCH_SIZE)
-        batch_data = train_data[offset : (offset + BATCH_SIZE), ...]
-        batch_labels = train_labels[offset : (offset + BATCH_SIZE)]
+        batch_data = train_data[offset: (offset + BATCH_SIZE), ...]
+        batch_labels = train_labels[offset: (offset + BATCH_SIZE)]
 
         # This dictionary maps the batch data (as a numpy array) to the
         # node in the graph it should be fed to.
-        feed_dict = {train_data_node: batch_data, train_labels_node: batch_labels}
+        feed_dict = {train_data_node: batch_data,
+                     train_labels_node: batch_labels}
 
         # Run the optimizer to update weights.
         sess.run(optimizer, feed_dict=feed_dict)
@@ -298,7 +307,8 @@ with tf.Session() as sess:
                 )
             )
             print("Minibatch loss: %.3f, learning rate: %.6f" % (l, lr))
-            print("Minibatch error: %.1f%%" % error_rate(predictions, batch_labels))
+            print("Minibatch error: %.1f%%" %
+                  error_rate(predictions, batch_labels))
             print(
                 "Validation error: %.1f%%"
                 % error_rate(eval_in_batches(validation_data, sess), validation_labels)
