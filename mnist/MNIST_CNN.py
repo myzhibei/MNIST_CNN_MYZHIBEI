@@ -2,7 +2,7 @@
 Author: myzhibei myzhibei@qq.com
 Date: 2023-05-17 21:15:42
 LastEditors: myzhibei myzhibei@qq.com
-LastEditTime: 2023-05-18 14:05:22
+LastEditTime: 2023-05-18 16:21:16
 FilePath: \手写数字识别\mnist\MNIST_CNN.py
 Description: 
 
@@ -91,21 +91,6 @@ model = NeuralNetwork().to(device)
 print(model)
 
 
-# class Lambda(nn.Module):
-#     def __init__(self, func):
-#         super().__init__()
-#         self.func = func
-
-#     def forward(self, x):
-#         return self.func(x)
-
-
-# def preprocess(x):
-#     return x.view(-1, 1, 28, 28)
-
-# Define model
-
-
 class CNN(nn.Module):
     def __init__(self):
         super().__init__()
@@ -121,8 +106,9 @@ class CNN(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_stack = nn.Sequential(
             nn.Linear(64*7*7, 1024),
-            nn.ReLU(),
+            nn.ReLU(),            
             nn.Linear(1024, 512),
+            nn.Dropout(p=0.4),
             nn.ReLU(),
             nn.Linear(512, 10),
         )
@@ -181,7 +167,7 @@ def test(dataloader, model, loss_fn):
         f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 
-epochs = 10
+epochs = 15
 
 starttime = time.time()
 if CNN_bool:
@@ -204,7 +190,7 @@ if CNN_bool:
     model_name = "MNIST_CNN_model.pth"
     model_path = model_save_path + '/' + model_name
     torch.save(CNN_model.state_dict(), model_path)
-    print("Saved PyTorch CNN Model State to {model_path}")
+    print(f"Saved PyTorch CNN Model State to {model_path}")
 
     CNN_model = CNN().to(device)
     CNN_model.load_state_dict(torch.load(model_path))
@@ -225,6 +211,7 @@ if CNN_bool:
     CNN_model.eval()
     x, y = test_data[0][0], test_data[0][1]
     with torch.no_grad():
+        x = x.unsqueeze(0)
         x = x.to(device)
         pred = CNN_model(x)
         predicted, actual = classes[pred[0].argmax(0)], classes[y]
@@ -234,7 +221,7 @@ else:
     model_path = model_save_path + '/' + model_name
 
     torch.save(model.state_dict(), model_path)
-    print("Saved PyTorch Model State to {model_path}")
+    print(f"Saved PyTorch Model State to {model_path}")
 
     model = NeuralNetwork().to(device)
     model.load_state_dict(torch.load(model_path))
