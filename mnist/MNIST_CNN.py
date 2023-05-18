@@ -2,13 +2,14 @@
 Author: myzhibei myzhibei@qq.com
 Date: 2023-05-17 21:15:42
 LastEditors: myzhibei myzhibei@qq.com
-LastEditTime: 2023-05-18 16:21:16
+LastEditTime: 2023-05-18 16:51:51
 FilePath: \手写数字识别\mnist\MNIST_CNN.py
 Description: 
 
 Copyright (c) 2023 by myzhibei myzhibei@qq.com, All Rights Reserved. 
 '''
 import sys
+import os
 import time
 import torch
 from torch import nn
@@ -21,8 +22,8 @@ log_path = r"./logs"  # 日志文件路径
 dataset_path = r"./data"  # 数据集存放路径
 model_save_path = r"./model"  # 模型待存储路径
 
-logf = open(log_path+'/'+'runCNN.log', 'w')
-# sys.stdout = logf
+logf = open(log_path+'/'+'runCNN.log', 'a')
+sys.stdout = logf
 
 print(time.time())
 
@@ -90,6 +91,11 @@ class NeuralNetwork(nn.Module):
 model = NeuralNetwork().to(device)
 print(model)
 
+model_path = "./model/MNIST_model.pth"
+if os.path.exists(model_path):
+    print(f"Load model {model_path}")
+    model.load_state_dict(torch.load(model_path))
+
 
 class CNN(nn.Module):
     def __init__(self):
@@ -106,9 +112,9 @@ class CNN(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_stack = nn.Sequential(
             nn.Linear(64*7*7, 1024),
-            nn.ReLU(),            
+            nn.ReLU(),
             nn.Linear(1024, 512),
-            nn.Dropout(p=0.4),
+            nn.Dropout(p=0.5),
             nn.ReLU(),
             nn.Linear(512, 10),
         )
@@ -122,6 +128,11 @@ class CNN(nn.Module):
 
 CNN_model = CNN().to(device)
 print(CNN_model)
+
+# model_path = "./model/MNIST_CNN_model.pth"
+# if os.path.exists(model_path):
+#     print(f"Load model {model_path}")
+#     CNN_model.load_state_dict(torch.load(model_path))
 
 loss_fn = nn.CrossEntropyLoss()
 if CNN_bool:
@@ -167,7 +178,7 @@ def test(dataloader, model, loss_fn):
         f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 
-epochs = 15
+epochs = 20
 
 starttime = time.time()
 if CNN_bool:
@@ -187,7 +198,9 @@ print(f"Time-consuming: {(endtime - starttime)} \n")
 
 # 保存模型
 if CNN_bool:
-    model_name = "MNIST_CNN_model.pth"
+    # model_name = "MNIST_CNN_model" + \
+    #     time.strftime("%Y%m%d%H%I%S", time.localtime(time.time()))+".pth"
+    model_name = "MNIST_CNN_model_3.pth"
     model_path = model_save_path + '/' + model_name
     torch.save(CNN_model.state_dict(), model_path)
     print(f"Saved PyTorch CNN Model State to {model_path}")
