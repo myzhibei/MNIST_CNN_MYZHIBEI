@@ -2,7 +2,7 @@
 Author: myzhibei myzhibei@qq.com
 Date: 2023-05-17 21:15:42
 LastEditors: myzhibei myzhibei@qq.com
-LastEditTime: 2023-05-18 00:27:18
+LastEditTime: 2023-05-18 14:05:22
 FilePath: \手写数字识别\mnist\MNIST_CNN.py
 Description: 
 
@@ -22,7 +22,9 @@ dataset_path = r"./data"  # 数据集存放路径
 model_save_path = r"./model"  # 模型待存储路径
 
 logf = open(log_path+'/'+'runCNN.log', 'w')
-sys.stdout = logf
+# sys.stdout = logf
+
+print(time.time())
 
 CNN_bool = True
 
@@ -89,32 +91,50 @@ model = NeuralNetwork().to(device)
 print(model)
 
 
-class Lambda(nn.Module):
-    def __init__(self, func):
+# class Lambda(nn.Module):
+#     def __init__(self, func):
+#         super().__init__()
+#         self.func = func
+
+#     def forward(self, x):
+#         return self.func(x)
+
+
+# def preprocess(x):
+#     return x.view(-1, 1, 28, 28)
+
+# Define model
+
+
+class CNN(nn.Module):
+    def __init__(self):
         super().__init__()
-        self.func = func
+        self.CNN_stack = nn.Sequential(
+            # Lambda(preprocess),
+            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+        )
+        self.flatten = nn.Flatten()
+        self.linear_stack = nn.Sequential(
+            nn.Linear(64*7*7, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, 10),
+        )
 
     def forward(self, x):
-        return self.func(x)
+        x = self.CNN_stack(x)
+        x = self.flatten(x)
+        logits = self.linear_stack(x)
+        return logits
 
 
-def preprocess(x):
-    return x.view(-1, 1, 28, 28)
-
-
-CNN_model = nn.Sequential(
-    Lambda(preprocess),
-    nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
-    nn.ReLU(),
-    nn.Conv2d(16, 16, kernel_size=3, stride=2, padding=1),
-    nn.ReLU(),
-    nn.Conv2d(16, 10, kernel_size=3, stride=2, padding=1),
-    nn.ReLU(),
-    nn.AvgPool2d(4),
-    Lambda(lambda x: x.view(x.size(0), -1)),
-)
-
-CNN_model.to(device)
+CNN_model = CNN().to(device)
 print(CNN_model)
 
 loss_fn = nn.CrossEntropyLoss()
@@ -178,25 +198,17 @@ endtime = time.time()
 print("Done!")
 print(f"Time-consuming: {(endtime - starttime)} \n")
 
+
+# 保存模型
 if CNN_bool:
     model_name = "MNIST_CNN_model.pth"
     model_path = model_save_path + '/' + model_name
     torch.save(CNN_model.state_dict(), model_path)
     print("Saved PyTorch CNN Model State to {model_path}")
 
-    CNN_model_2 = nn.Sequential(
-        Lambda(preprocess),
-        nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
-        nn.ReLU(),
-        nn.Conv2d(16, 16, kernel_size=3, stride=2, padding=1),
-        nn.ReLU(),
-        nn.Conv2d(16, 10, kernel_size=3, stride=2, padding=1),
-        nn.ReLU(),
-        nn.AvgPool2d(4),
-        Lambda(lambda x: x.view(x.size(0), -1)),
-    )
-    CNN_model_2.load_state_dict(torch.load(model_path))
-
+    CNN_model = CNN().to(device)
+    CNN_model.load_state_dict(torch.load(model_path))
+    print(CNN_model)
     classes = [
         "0",
         "1",
@@ -210,14 +222,13 @@ if CNN_bool:
         "9",
     ]
 
-    CNN_model_2.eval()
+    CNN_model.eval()
     x, y = test_data[0][0], test_data[0][1]
     with torch.no_grad():
         x = x.to(device)
-        pred = CNN_model_2(x)
+        pred = CNN_model(x)
         predicted, actual = classes[pred[0].argmax(0)], classes[y]
         print(f'Predicted: "{predicted}", Actual: "{actual}"')
-
 else:
     model_name = "MNIST_model.pth"
     model_path = model_save_path + '/' + model_name
