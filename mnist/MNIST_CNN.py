@@ -2,7 +2,7 @@
 Author: myzhibei myzhibei@qq.com
 Date: 2023-05-17 21:15:42
 LastEditors: myzhibei myzhibei@qq.com
-LastEditTime: 2023-05-20 17:45:55
+LastEditTime: 2023-05-20 21:47:21
 FilePath: \手写数字识别\mnist\MNIST_CNN.py
 Description: 
 
